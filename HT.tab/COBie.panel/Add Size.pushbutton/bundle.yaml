@@ -1,0 +1,9 @@
+title:
+  en_us: Add Size
+tooltip:
+  en_us: |-
+
+    This tool will collect all elements in the models with the "COBie" YEs/No parameter checked. It will then aquire values of instance parameter Width, Height and Length and if these will not return any value it will acquire values from the element Type. If also Type parameters will not return any value it will calculate the element Width, Height and Length from the Bonding Box min and max values. At the and acquired values for Width, Height and Length will be saved to element Type's corresponding parameters called COBie.Type.NominalWidth, COBie.Type.NominalLength, and COBie.Type.NominalHeight 
+                    
+    IMPORTANT!!!
+    COBie.Type.NominalWidth Length and Height needs to be created manually as Text parameters for all element Categories which are selected for COBie export.

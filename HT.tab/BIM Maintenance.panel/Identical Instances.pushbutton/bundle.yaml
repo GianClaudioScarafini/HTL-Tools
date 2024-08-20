@@ -1,0 +1,8 @@
+title:
+  en_us: Identical Instances
+tooltip:
+  en_us: >-
+
+    Removes identical instances from the model omitting these in Groups and these which have any dependent elements connected to one of the duplicated element. It also deletes duplicated elements on the Design Options leaving an element in the Main Model only unless elements in the Design Option are in Groups or have dependent elements.
+    
+    At the end script shows a summary with number and IDs of deleted elements and a detailed summary of all elements showing IDs, which were deleted, which have what dependent elements and which are in the Design Options.

@@ -1,0 +1,6 @@
+title:
+  en_us: Warnings
+tooltip:
+  en_us: >-
+
+    An alternative way to show Revit warnings of a specific type only on a list which allows to select one of the objects in the model.

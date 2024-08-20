@@ -1,0 +1,6 @@
+title:
+  en_us: Parameters Cleaner
+tooltip:
+  en_us: >-
+
+    Delete Parameters which were never used or have no values applied to any element.

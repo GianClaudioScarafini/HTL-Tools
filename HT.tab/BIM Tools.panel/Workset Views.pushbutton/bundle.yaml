@@ -1,0 +1,6 @@
+title:
+  en_us: Workset Views Creator
+tooltip:
+  en_us: >-
+
+    Creates 3D views for each workset with the same name. If a view exists it will be updated. A view Template can be selected and applied to each views.

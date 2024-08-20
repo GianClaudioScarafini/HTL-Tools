@@ -1,0 +1,6 @@
+title:
+  en_us: Central Model GUID
+tooltip:
+  en_us: >-
+
+    Shows Central Model GUID number if model is workshared and is based in the cloud or on the Revit Server. It also shows path and size of the Central Model

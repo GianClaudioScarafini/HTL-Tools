@@ -1,0 +1,6 @@
+title:
+  en_us: CAD Worksets
+tooltip:
+  en_us: >-
+
+    This tool checks if all CAD files (instance elements and Types) are set to the "Z-Linked CAD" workset and allows correction if they are not. 
