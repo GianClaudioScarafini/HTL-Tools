@@ -1,7 +1,7 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-06-19
-# Version: 1.0.2
+# Version: 1.0.3
 # Description: Removes identical instances from the model omitting these in Groups and these which have any dependent elements connected to one of the duplicated element. It also deletes duplicated elements on the Design Options leaving an element in the Main Model only unless elements in the Design Option are in Groups or have dependent elements. At the end script shows a summary with number and IDs of deleted elements and a detailed summary of all elements showing IDs, which were deleted, which have what dependent elements and which are in the Design Options.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
@@ -132,7 +132,24 @@ for warning in identical_instance_warnings:
         grouped_warnings_ids.append(warning_ids)
 
 def check_host_and_groupId( element ):
-    if element.Host or element.SuperComponent is not None:
+    # check if element has a host parameter
+    try:
+        if element.Host:
+            host = True
+        else:
+            host = None
+    except:
+        host = None
+    # check if element has a parameter SuperComponent what means it's nested.
+    try:
+        if element.SuperComponent:
+            super_component = True
+        else:
+            super_component = None
+    except:
+        super_component = None
+
+    if host or super_component is not None:
         global info  # declare 'info' as global
         design_option_text = ""
         design_option = element.DesignOption
@@ -165,9 +182,12 @@ def check_dependencies( element ):
     i = 0
     for dep_element_id in dependent_element_ids:
         dep_element = doc.GetElement(dep_element_id)
+        # Elements with no category can be omitted
         # Analytical columns and constants are omitted
+        # Sketch lines creating an element can be omitted
+        # Automatic sketch dimensions are omitted
         # The same element as the element is also always listed as a dependent element and needs to be omitted.
-        if dep_element_id != element.Id and dep_element.Category and dep_element.Category.Name != "Constraints" and dep_element.Category.Name != "Analytical Columns":
+        if dep_element_id != element.Id and dep_element.Category and dep_element.Category.Name != "Constraints" and dep_element.Category.Name != "Analytical Columns" and dep_element.Category.Name != "<Sketch>" and dep_element.Category.Name != "Automatic Sketch Dimensions":
             i += 1
             dep_element = doc.GetElement(dep_element_id)
             dependencies_info += ("    "+str(i)+". ID: {} - Category: {} - Name: {}\n".format(dep_element_id.IntegerValue, dep_element.Category.Name,  dep_element.Name))

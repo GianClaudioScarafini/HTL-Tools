@@ -1,5 +1,8 @@
 title:
-  en_us: Duplicate Links
+  en_us:
+    Duplicate
+  
+    Links
 tooltip:
   en_us: >-
     This tool will help you to find the duplicate links in the project.

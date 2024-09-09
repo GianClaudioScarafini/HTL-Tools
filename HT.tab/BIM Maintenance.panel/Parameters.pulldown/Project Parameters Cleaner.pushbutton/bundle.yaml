@@ -4,5 +4,5 @@ tooltip:
   en_us: >-
 
     Delete Project Parameters which were never used or have no values applied to any element.
-            
+     
     The script collects all elements for each category for each parameter and checks if there is any value applied to this paramter for each of collected elements.

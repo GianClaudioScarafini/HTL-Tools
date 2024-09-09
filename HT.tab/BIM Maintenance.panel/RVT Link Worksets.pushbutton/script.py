@@ -3,7 +3,7 @@
 # Date: 2024-07-26
 # Version: 1.0.0
 # Description: This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code or not. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. For Revit 2023+ user will be asked at the end of the process if worksets with no RVT link replaced by a Workset with an updated name should be deleted. This unfortunately due to Revit API limitations can only be done to Editable Worksets.
-# Tested with: Revit +2022
+# Tested with: Revit 2022+
 # Requirements: pyRevit add-in
 
 import clr

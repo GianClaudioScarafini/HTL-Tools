@@ -1,7 +1,7 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-07-23
-# Version: 1.0.1
+# Version: 1.0.3
 # Description: This script is an alternative way to show Revit warnings. It allows to show warnings of a specific type only on a list which allows to select one of the objects in the model. It also shows the number of warnings of each category.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
@@ -160,6 +160,9 @@ if warnings:
                     else:
                         # If so, print the area's scheme
                         category = category +' ('+area.AreaScheme.Name + ')'
+                if 'Areas' in category:
+                    category = category +' ('+element.AreaScheme.Name + ')'
+
                 if category is not None:
                     category =  category.replace('<', '&lt;').replace('>', '&gt;')
                 # else:
@@ -213,7 +216,7 @@ if warnings:
                     pass
                 # Get the family and type name
                 try:
-                    if category == 'Rooms':
+                    if category == 'Rooms' or 'Areas' in category:
                         room_name = element.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsValueString()
                         room_number = element.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsValueString()
                         separator = ''
@@ -307,6 +310,13 @@ if warnings:
                 text = order + workset + design_option_info + level + category + " : " + family_and_type + \
                         parameter_value + \
                         "<br>**Id:** " + output.linkify(element_id) + ' Created by: ' + element_instance_creator
+                
+                # Check if the element is a group.
+                if element.GroupId != DB.ElementId.InvalidElementId:
+                    group_id = element.GroupId
+                    group = doc.GetElement(group_id)
+                    group_name = group.Name
+                    text += ' | **Group Id:** ' + output.linkify(group_id) + ' Name: ' + group_name
                 #forms.alert( text )
                 return  text
 

@@ -1,8 +1,9 @@
 title:
-  en_us: Id TagNumber
+  en_us:
+    Id to
+
+    TagNumber
 tooltip:
   en_us: |-
 
     Copies element Id to COBie.Component.TagNumber
-   
-    Only use if ElementId number parsmter is not available to select 
