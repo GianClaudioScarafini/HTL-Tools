@@ -5,4 +5,4 @@ title:
     Checker
 tooltip:
   en_us: >-
-    Gian, please add description
+    This tool verifies the revision format in the file and provides a list of all revision dates, along with their corresponding creator.
