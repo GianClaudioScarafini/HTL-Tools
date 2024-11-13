@@ -1,17 +1,15 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-06-19
-# Version: 1.0.3
+# Version: 1.0.4
 # Description: Removes identical instances from the model omitting these in Groups and these which have any dependent elements connected to one of the duplicated element. It also deletes duplicated elements on the Design Options leaving an element in the Main Model only unless elements in the Design Option are in Groups or have dependent elements. At the end script shows a summary with number and IDs of deleted elements and a detailed summary of all elements showing IDs, which were deleted, which have what dependent elements and which are in the Design Options.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
 
-import clr
 from sys import exit
 
 # Import pyRevit modules
 from pyrevit import revit, DB, script, forms, framework
-from Autodesk.Revit.DB import BuiltInParameter
 
 class DeleteBetweenOptionSets(forms.TemplateUserInputWindow):
     xaml_source = script.get_bundle_file('options.xaml')
@@ -154,7 +152,7 @@ def check_host_and_groupId( element ):
         design_option_text = ""
         design_option = element.DesignOption
         if design_option:
-            designOptionSetId = design_option.get_Parameter(BuiltInParameter.OPTION_SET_ID).AsElementId()
+            designOptionSetId = design_option.get_Parameter(DB.BuiltInParameter.OPTION_SET_ID).AsElementId()
             designOptionSet = doc.GetElement(designOptionSetId)
             DSName = designOptionSet.Name
             design_option_text = "(" + element.DesignOption.Name+" in " + DSName + ")"
@@ -166,7 +164,7 @@ def check_host_and_groupId( element ):
         design_option_text = ""
         design_option = element.DesignOption
         if design_option:
-            designOptionSetId = design_option.get_Parameter(BuiltInParameter.OPTION_SET_ID).AsElementId()
+            designOptionSetId = design_option.get_Parameter(DB.BuiltInParameter.OPTION_SET_ID).AsElementId()
             designOptionSet = doc.GetElement(designOptionSetId)
             DSName = designOptionSet.Name
             design_option_text = "(" + element.DesignOption.Name+" in " + DSName + ") "
@@ -225,7 +223,7 @@ for list in grouped_warnings_ids:
             design_option_text = ""
             design_option = element.DesignOption
             if design_option:      
-                designOptionSetId = design_option.get_Parameter(BuiltInParameter.OPTION_SET_ID).AsElementId()
+                designOptionSetId = design_option.get_Parameter(DB.BuiltInParameter.OPTION_SET_ID).AsElementId()
                 designOptionSet = doc.GetElement(designOptionSetId)
                 DSName = designOptionSet.Name
                 design_option_text = "(" + element.DesignOption.Name+" in " + DSName + ") "
@@ -276,7 +274,7 @@ for list in grouped_warnings_ids:
                         for element_id in DOSets_elements:
                             element = doc.GetElement(element_id)
                             design_option = element.DesignOption
-                            designOptionSetId = design_option.get_Parameter(BuiltInParameter.OPTION_SET_ID).AsElementId()
+                            designOptionSetId = design_option.get_Parameter(DB.BuiltInParameter.OPTION_SET_ID).AsElementId()
                             designOptionSet = doc.GetElement(designOptionSetId)
                             DSName = designOptionSet.Name
 

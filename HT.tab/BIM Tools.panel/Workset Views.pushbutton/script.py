@@ -1,14 +1,12 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-05-14
-# Version: 1.0.0
+# Version: 1.0.3
 # Description: This script will create a 3D view for each workset and will update existing Workset views. It allows to specify a View Template which can direct  new views to specific Project Browser folders.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
 
-import clr
 import System
-from System.Collections.Generic import List
 # Import pyRevit modules
 from pyrevit import revit, DB, script, forms, framework
 
@@ -208,12 +206,12 @@ else:
                             v.SetWorksetVisibility( workset.Id, visible )
                         else:
                             v.SetWorksetVisibility( workset.Id, hidden )
-               
-                    except Exception as del_err: logger = script.get_logger()
+                except Exception as del_err:
+                    logger = script.get_logger()
                     logger.error('Error applying workset visibility: {} | {}'
                             .format(workset.Name, del_err))
                     forms.alert('Error applying workset visibility: {} | {}'
-                            .format(workset.Name, del_err))
+                        .format(workset.Name, del_err))
 
         final_message = ''
         if new3DViewsNames:

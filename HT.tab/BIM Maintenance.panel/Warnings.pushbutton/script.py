@@ -1,13 +1,12 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-07-23
-# Version: 1.0.3
+# Version: 1.0.4
+# Name: Warnings
 # Description: This script is an alternative way to show Revit warnings. It allows to show warnings of a specific type only on a list which allows to select one of the objects in the model. It also shows the number of warnings of each category.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
 
-import clr
-import System
 # Import pyRevit modules
 from pyrevit import revit, DB, script, forms
 from collections import defaultdict

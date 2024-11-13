@@ -2,14 +2,12 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-08-26
-# Version: 1.0.0
+# Version: 1.0.1
 # Description: This tool checks if all CAD files (instance elements and Types) are set to the "Z-Linked CAD" workset and allows correction if they are not.
 # Tested with: Revit 2022+
 # Requirements: pyRevit add-in
 
-import clr
-
-from pyrevit import revit, DB, script, forms
+from pyrevit import revit, DB, forms
 
 # Get the current document
 doc = revit.doc
@@ -22,6 +20,17 @@ cad_instances = DB.FilteredElementCollector(doc)\
                   .OfClass(DB.ImportInstance)\
                   .WhereElementIsNotElementType()\
                   .ToElements()
+
+# if there are no links there is no point to continue 
+if not cad_instances:
+    # https://docs.pyrevitlabs.io/reference/pyrevit/forms/#pyrevit.forms.alert
+    forms.alert('No CAD links found in the project.', title="CAD Links Info", exitscript=True)
+
+if not doc.IsWorkshared and doc.CanEnableWorksharing:
+    forms.alert(
+        'Current project is not workshared for collaboration.', 
+        title="Worksharing Info", exitscript=True
+    )
 
 # Initialize lists to store CAD files with incorrect workset assignments
 incorrect_workset_cad = []

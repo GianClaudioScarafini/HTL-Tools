@@ -1,24 +1,16 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-05-14
-# Version: 1.0.0
-# Description: This script will delete all not used Shared Parameters from the project.
+# Version: 1.1.0
+# Description: This script allow to inspect Shared Parameters usage in the project by checking how many elements use each selected parameter and allows to delete any parameter from the project.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
-
-import clr
-clr.AddReference('RevitAPI')
-from Autodesk.Revit.DB import StorageType, SpecTypeId
-import System
-from System import Guid
 
 # Import pyRevit modules
 from pyrevit import revit, DB, script, forms
 
-app = __revit__.Application
+app = revit.doc.Application
 ver = int(app.VersionNumber)
-if ver <=2022:
-    from Autodesk.Revit.DB import ParameterType
 doc = revit.doc
 
 if doc.IsFamilyDocument:
@@ -52,6 +44,7 @@ else:
     def checkIfInUse(elements, sp):
         # If there are no elements a parameter can be deleted.
         # None will be returned in this case and this is fine.
+        count = 0
         if elements:
             for element in elements:
                 par = element.get_Parameter(sp.guid)
@@ -59,41 +52,41 @@ else:
                     if par.HasValue:
                         value = None
                         try:
-                            if par.StorageType == StorageType.String:
+                            if par.StorageType == DB.StorageType.String:
                                 value = par.AsString()
-                            elif par.StorageType == StorageType.Integer:
+                            elif par.StorageType == DB.StorageType.Integer:
                                 if ver >= 2023: # ParameterType() got obsolete in Revit 2023 and above.
-                                    if par.Definition.GetDataType().Equals(SpecTypeId.Boolean.YesNo):
+                                    if par.Definition.GetDataType().Equals(DB.SpecTypeId.Boolean.YesNo):
                                         if par.HasValue:
-                                            return True
-                                        else:
-                                            value = par.AsInteger()
+                                            count += 1
+                                    else:
+                                        value = par.AsInteger()
                                 else:
-                                    if ParameterType.YesNo == par.Definition.ParameterType:
+                                    if DB.ParameterType.YesNo == par.Definition.ParameterType:
                                         if par.HasValue:
-                                            return True
-                                        else:
-                                            value = par.AsInteger()
-                            elif par.StorageType == StorageType.Double:
+                                            count += 1
+                                    else:
+                                        value = par.AsInteger()
+                            elif par.StorageType == DB.StorageType.Double:
                                 value = par.AsDouble()
-                            elif par.StorageType == StorageType.ElementId:
+                            elif par.StorageType == DB.StorageType.ElementId:
                                 value = par.AsElementId()
-                            if value:
-                                return True
+                            # If parameter has values of empty sting = "" it should be deleted. 
+                            # par.HasValue for empty string would return True - has a value. We do not want this except YesNo parameters.
+                            if value or value == 0:
+                                count += 1
                         except Exception as del_err:
                             logger.error('Error checking parameter value: {} | {}'
                                     .format(sp.Name, del_err))
-                            value = 'For safety it is better to not delete a parameter that created an error and assume it has a value and has been used.'
-                        # If parameter has values of empty sting = "" it should be deleted. 
-                        # par.HasValue for empty string would return True - has a value. We do not want this except YesNo parameters.
-                        if value or value == 0:
-                            return True
+                            count += 1 # For safety it is better to not delete a parameter that created an error and assume it has a value and has been used.
                 except Exception as del_err:
                     logger.error('Error checking parameter HasValue: {} | {}'
                                     .format(sp.Name, del_err))
                     forms.alert('Error checking parameter HasValue: {} | {} | {}'
                                     .format(sp.Name, del_err, str(element.Id) ))
-                    return True
+                    count += 1 # For safety it is better to not delete a parameter that created an error and assume it has a value and has been used.
+                    continue
+        return count            
 
     logger = script.get_logger()
 
@@ -116,6 +109,7 @@ else:
             sp_list.append(sp_obj)
             # Sorts a list of parameters alphabetically by name.
             sp_list.sort(key=lambda sp_obj: sp_obj.Name)
+
     if not sp_list:
         forms.alert('No Project Parameters in the model.')
     else:
@@ -123,13 +117,14 @@ else:
         return_options = \
             forms.SelectFromList.show(
                 [ViewFilterToPurge(x) for x in sp_list],
-                title='Select project parameters to check if they are in use',
+                title='Select Shared Parameters to check if they are in use.',
                 width=500,
-                button_name='Check these parameters',
+                button_name='Select these parameters',
                 multiselect=True
             )
 
         if return_options:
+            parameters_with_counts = []
             AllTypeElements = {}
             AllInstanceElements = {}
             for sp in return_options:
@@ -149,36 +144,44 @@ else:
                         else:
                             allElementsOfAllCategories.extend(AllInstanceElements[cat.Name])
                 sp.inUse = checkIfInUse(allElementsOfAllCategories, sp)
-                if not sp.inUse: # If not True - it is the same as "if sp.inUse = False or sp.inUse = None".
-                    parametersToDelete.append(sp)
-                #else:
-                    # If there category set is empty, it means the parameter is not assigned to any category and can be deleted.
-                    # Revit in theory does not allow to create a parameter and not select any Category.
-                    #parametersToDelete.append(sp)
-                    #forms.alert('Parameter {} is not assigned to any category and will be deleted.'
-                    #                .format(sp.Name))
+                parameters_with_counts.append((sp, sp.inUse))
+            
+            # Sort the list based on count
+            parameters_with_counts.sort(key=lambda x: x[1])
+            
+            # Create a custom class to create a list item with the parameter name and the count
+            class ParameterWithCount(forms.TemplateListItem):
+                @property
+                def name(self):
+                    return "{} - Used in {} elements".format(self.item[0].Name, self.item[1])
 
-            # Ask user to select parameters to delete.
-            delete_options = \
-                forms.SelectFromList.show(
-                    [ViewFilterToPurge(x) for x in parametersToDelete],
-                    title='Select not used project parameters to delete',
-                    width=500,
-                    button_name='Delete parameters!',
-                    multiselect=True
-                )
-            if delete_options:
-                DELETED = []
-                with revit.Transaction('Purge Unused Project Parameters'):
-                    for sp in delete_options:
-                        try:
-                            #print("Parameter {} was deleted from the model.".format(sp.Name))
-                            doc.Delete(sp.sp_id)
-                            DELETED.append(sp.Name)
-                        except Exception as del_err:
-                            logger.error('Error purging parameter: {} | {}'
-                                        .format(sp.Name, del_err))
-                if len(DELETED) > 1:
-                    forms.alert("Parameters: {} were deleted from the model.".format(', '.join(DELETED)))
+            if parameters_with_counts:
+                # Ask user to select parameters to delete.
+                delete_options = \
+                    forms.SelectFromList.show(
+                        [ParameterWithCount(x) for x in parameters_with_counts],
+                        title='Parameters sorted by usage. Select which to delete.',
+                        width=500,
+                        button_name='Delete parameters!',
+                        multiselect=True
+                    )
+                if delete_options:
+                    DELETED = []
+                    with revit.Transaction('Purge Unused Project Parameters'):
+                        for sp_tuple in delete_options:
+                            sp = sp_tuple[0]
+                            try:
+                                #print("Parameter {} was deleted from the model.".format(sp.Name))
+                                doc.Delete(sp.sp_id)
+                                DELETED.append(sp.Name)
+                            except Exception as del_err:
+                                logger.error('Error purging parameter: {} | {}'
+                                            .format(sp.Name, del_err))
+                    if len(DELETED) > 1:
+                        forms.alert("Parameters: {} were deleted from the model.".format(', '.join(DELETED)))
+                    else:
+                        forms.alert('Parameter "{}" was deleted from the model.'.format(DELETED[0]))
                 else:
-                    forms.alert('Parameter "{}" was deleted from the model.'.format(DELETED[0]))
+                    forms.alert('Nothing selected.')
+        else:
+            forms.alert('Nothing selected.')

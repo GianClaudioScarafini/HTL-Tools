@@ -1,0 +1,11 @@
+title: >-
+  Unused
+  
+  Filters
+tooltip:
+  en_us: >-
+
+    Removes unused filters from View Templates and Views. 
+    These are filters added to V/G Filters tab but not doing any changes.
+    
+    Filters enable/disable property is ignored.

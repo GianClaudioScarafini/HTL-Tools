@@ -1,17 +1,17 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-07-26
-# Version: 1.0.0
+# Version: 1.0.1
 # Description: This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code or not. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. For Revit 2023+ user will be asked at the end of the process if worksets with no RVT link replaced by a Workset with an updated name should be deleted. This unfortunately due to Revit API limitations can only be done to Editable Worksets.
 # Tested with: Revit 2022+
 # Requirements: pyRevit add-in
+#
+# Since 1.0.1 Workset Name and Mark Added. Error in startswith() corrected. Link prefix added as variable.
 
-import clr
 import re
-import System
 # from sys import exit # to use exit() to terminate the script
 # Import pyRevit modules
-from pyrevit import revit, DB, script, forms, framework
+from pyrevit import revit, DB, script, forms
 
 # Get the current document
 doc = revit.doc
@@ -47,6 +47,8 @@ if not enable_worksharing:
 all_rvt_link_names = []
 new_workset_names = []
 used_workset_names = []
+linked_file_prefix = 'Z-Linked RVT-'
+
 for link in revit_links:
     link_name = link.Name.split(".rvt")[0]
     all_rvt_link_names.append(link_name)
@@ -112,14 +114,15 @@ for link in revit_links:
             output.print_md( '> Zone is the same as the file name or ZZ. Skipping: ' + file_zone  )
         else:
             zone = '-' + zone
-        workset_name = 'Z-Linked RVT-'+ discipline + originator + zone
-    
+        instance_name = discipline + originator + zone
+        workset_name = linked_file_prefix + instance_name
+
         similar_names = 0
         base_name = link_name.replace(digits, "").strip()
         output.print_md( '> Base name:' + base_name  )
         # Check how many links have the same base name. We removed last characters which usually are digits from 0001.
         for n in all_rvt_link_names:
-            if n.StartsWith(base_name):
+            if n.startswith(base_name):
                 similar_names += 1
         # Now we check if the workset name was already created if similar_names > 1
         if similar_names > 1:
@@ -128,7 +131,8 @@ for link in revit_links:
             workset_name = workset_name + '-' + digits
     else:
         output.print_md( '> Link name does not match the naming standard. Adding whole name to workset name.'  )
-        workset_name = 'Z-Linked RVT-' + link_name
+        workset_name = linked_file_prefix + link_name
+        instance_name = link_name
     output.print_md( '> New Workset name: ' + workset_name  )
     # Now we need to check if a workset with this name already exists for this link
     existing_workset = [] # with this link name
@@ -149,6 +153,13 @@ for link in revit_links:
                 worksetTypeParam = \
                     link_type.Parameter[DB.BuiltInParameter.ELEM_PARTITION_PARAM]
                 worksetTypeParam.Set(newWs.Id.IntegerValue)
+                # Sets link Name and MArk to make it the same as the link (this helps identify  the original link if it's duplicated)
+                worksetName = \
+                    link.Parameter[DB.BuiltInParameter.RVT_LINK_INSTANCE_NAME]
+                worksetName.Set(instance_name)
+                worksetMark = \
+                    link.Parameter[DB.BuiltInParameter.ALL_MODEL_MARK]
+                worksetMark.Set(instance_name)
                 output.print_md( '> New Workset created'  )
                 new_workset_names.append(workset_name)
             except Exception as e:
@@ -164,6 +175,13 @@ for link in revit_links:
                         link.Parameter[DB.BuiltInParameter.ELEM_PARTITION_PARAM]
                         # DB.BuiltInParameter.ELEM_PARTITION_PARAM is Workset
                     worksetParam.Set(Ws.Id.IntegerValue)
+                    # Sets link Name and MArk to make it the same as the link (this helps identify  the original link if it's duplicated)
+                    worksetName = \
+                        link.Parameter[DB.BuiltInParameter.RVT_LINK_INSTANCE_NAME]
+                    worksetName.Set(instance_name)
+                    worksetMark = \
+                        link.Parameter[DB.BuiltInParameter.ALL_MODEL_MARK]
+                    worksetMark.Set(instance_name)
                     output.print_md( "> RVT link instance Workset was corrected.")
                 except Exception as e:
                     print('Workset: {} could not be set to RVT link\nError: {}'.format(workset_name,e))
