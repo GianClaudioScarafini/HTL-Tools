@@ -1,12 +1,13 @@
 # Author: Pawel Block
 # Company: Haworth Tompkins Ltd
 # Date: 2024-07-26
-# Version: 1.0.1
-# Description: This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code or not. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. For Revit 2023+ user will be asked at the end of the process if worksets with no RVT link replaced by a Workset with an updated name should be deleted. This unfortunately due to Revit API limitations can only be done to Editable Worksets.
+# Version: 1.0.2
+# Description: This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code and zone. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. For Revit 2023+ user will be asked at the end of the process if worksets with no RVT link replaced by a Workset with an updated name should be deleted. This unfortunately due to Revit API limitations can only be done to Editable Worksets. Due to Revit API limitations it is not possible to rename existing Worksets. Links from existing worksets are removed and these Worksets are deleted. This means filters or other settings may not work and should be checked. Script also adds the name of the workset except the prefix to the Name and Mark parameter of a linked model.
 # Tested with: Revit 2022+
 # Requirements: pyRevit add-in
 #
 # Since 1.0.1 Workset Name and Mark Added. Error in startswith() corrected. Link prefix added as variable.
+# Since 1.0.2 Zone query added.
 
 import re
 # from sys import exit # to use exit() to terminate the script
@@ -62,6 +63,15 @@ add_originator = forms.alert(
                 yes = True,
                 no = True
             )
+# Query to add Zone to the workset link name
+add_zone = forms.alert(
+                'Include Zone code in the workset name?\n\nPress "Yes" if model is split into multiple zones combined together.', 
+                title="Include Zones?",
+                cancel=True,
+                ok = False,
+                yes = True,
+                no = True
+            )
 for link in revit_links:
     count += 1
     link_name = link.Name.split(".rvt")[0]
@@ -79,7 +89,7 @@ for link in revit_links:
 
     # Extract parts from the file name
     # i.e. GSK-HTL-RE-ZZ-M3-A-0001.rvt
-    match = re.match(r"(\w+)-(\w+)-(\w+)-(\w+)-(\w+)-(\w+)-(\d+)", link_name)
+    match = re.match(r"(\w+)-(\w+)-(\w+)-(\w+)-(\w+)-(\w+)-(\d+)([\w\d\s]*)?", link_name)
     # re.match: This function searches for a match at the beginning of the string (file_name). It returns a match object if the pattern is found, or None if no match is found.
     # (\w+): This captures one or more word characters (letters, digits, or underscores). The parentheses indicate a capturing group.
     # -: This matches the hyphen character literally.
@@ -92,9 +102,16 @@ for link in revit_links:
     # Group 5: Fifth part (e.g., "M3")
     # Group 6: Sixth part - Discipline (e.g., "A")
     # Group 7: Digits (e.g., "0001")
+    # Group 8: Optional underscore, dash or space (e.g., "-_ ") followed by some text
 
     if match:
-        _, originator, zone, _, _, discipline, digits = match.groups()
+        groups = list(match.groups())
+        # Ensure the description is present
+        if len(groups) < 8:
+            groups.append("")
+        _, originator, zone, _, _, discipline, digits, description = groups
+        description = description if description is not None else ""
+        output.print_md("> Originator: " + originator + " Zone: " +zone+ " Discipline: " + discipline+ " Digits: "+ digits + " Description: " + description)
         # match.groups(): This method returns a tuple containing all the captured groups from the regular expression match. In our case, it corresponds to the seven groups defined in the pattern.
         # _: This is a placeholder variable. It is used to ignore specific groups.
         # Add originator to the workset name
@@ -109,26 +126,85 @@ for link in revit_links:
         file_zone = ''
         if groups:
             file_zone = groups.group(3)
-        if zone == 'ZZ' or zone == file_zone:
+        if zone == 'ZZ' or not add_zone:
             zone = ''
-            output.print_md( '> Zone is the same as the file name or ZZ. Skipping: ' + file_zone  )
+            output.print_md( '> Zone is ZZ or not requested. Skipping: ' + file_zone  )
         else:
             zone = '-' + zone
         instance_name = discipline + originator + zone
-        workset_name = linked_file_prefix + instance_name
-
-        similar_names = 0
-        base_name = link_name.replace(digits, "").strip()
-        output.print_md( '> Base name:' + base_name  )
+        
+        similar_link_names = []
+        if description:
+            output.print_md( '> Description from the end removed: ' + description  )
+            base_name = link_name.replace(description, "").strip()
+            base_name = base_name.replace(digits, "").strip()
+        else:
+            base_name = link_name.replace(digits, "").strip()
+        output.print_md( '> Base name: ' + base_name  )
         # Check how many links have the same base name. We removed last characters which usually are digits from 0001.
-        for n in all_rvt_link_names:
+        # There  will be always one the same as the link name in the loop.
+        rvt_link_names_except_link = [s for s in all_rvt_link_names if s != link_name]
+        # Current model file name should be considered in naming new worksets. We add it to the list of link names.
+        rvt_link_names_except_link.append(file_name)
+        rvt_link_names_with_file_name = rvt_link_names_except_link
+        for n in rvt_link_names_with_file_name:
             if n.startswith(base_name):
-                similar_names += 1
-        # Now we check if the workset name was already created if similar_names > 1
-        if similar_names > 1:
+                similar_link_names.append(n)
+
+        def find_similar_part_names(desc, part_number, base_name, last_digit, similar_link_names):
+                if int(last_digit) > 1: # then we need to add number to the end anyway
+                    if desc != "":
+                        desc = desc + " " + last_digit
+                    else:
+                        desc = last_digit
+                else: # if 1 at the end we need to find if there are more
+                # find if there are two or more Internal model files.
+                    similar_part_names = []
+                    for p in similar_link_names:
+                        if p.startswith(base_name + part_number):
+                            similar_part_names.append(p)
+                    if len(similar_part_names) > 0: # then there are many parts. We need to add additional number.
+                        if desc != "":
+                            desc = desc + " " + last_digit
+                        else:
+                            desc = last_digit
+                return desc
+        # this gets last digit from digits
+        last_digit = digits[-1]
+
+        # Now we check if this links base name is used many times if similar_names > 0
+        if len(similar_link_names) > 0:
             # only for more than 1 we need to add digits at the end.
-            output.print_md( '> More than one link with the same base name. Adding digits at the end.'  )
-            workset_name = workset_name + '-' + digits
+            # It could be that teh file name is from the same model or two files are linked. In both situations we need to add digits at the end or description.
+            output.print_md( '> More than one link with the same base name. Adding digits or description at the end.'  )
+            # find what model part is he link
+            # if there are more than 2 or more or model doesn't end with 1 adds that number to the end.
+            if digits.startswith("1") and discipline == "A": # like ...100001 then this is Internal model
+                output.print_md( '> Internal Model detected with digits starting with 1.'  )
+                digits = find_similar_part_names("Internal", "1", base_name, last_digit, similar_link_names)
+            elif digits.startswith("2") and discipline == "A": # like ...200001 then this is Internal model
+                output.print_md( '> Facade Model detected with digits starting with 2.'  )
+                digits = find_similar_part_names("Facade", "2", base_name, last_digit, similar_link_names)
+            else:
+                output.print_md( '> Model with 0 or +3'  )
+                digits = find_similar_part_names("", digits[1], base_name, last_digit, similar_link_names)
+            instance_name = instance_name + '-' + digits
+        else:
+            # if there are no other links with the base name and the model file name is not the same it may still be the Internal or the Facade model
+            output.print_md('> This link has unique base name.')
+            if digits.startswith("1"): # like ...100001 then this is Internal model
+                digits = find_similar_part_names("Internal", "1", base_name, last_digit, similar_link_names)
+                instance_name = instance_name + '-' + digits
+            elif digits.startswith("2"): # like ...200001 then this is Internal model
+                digits = find_similar_part_names("Facade", "2", base_name, last_digit, similar_link_names)
+                instance_name = instance_name + '-' + digits
+            else:
+                if int(last_digit) > 1: # then we need to add number to the end anyway
+                    digits = digits[1] + last_digit
+                    instance_name = instance_name + '-' + digits
+                else:
+                    instance_name = instance_name
+        workset_name = linked_file_prefix + instance_name
     else:
         output.print_md( '> Link name does not match the naming standard. Adding whole name to workset name.'  )
         workset_name = linked_file_prefix + link_name
@@ -138,7 +214,7 @@ for link in revit_links:
     existing_workset = [] # with this link name
     if not enable_worksharing:
         for name in workset_dict.keys():
-            # Link workset name must start with "Z-Linked RVT-XXX-XX-000X"
+            # Link workset name must start with "Z-Linked RVT-X-XXX-XX-000X"
             if name.startswith(workset_name):
                 output.print_md( "> Workset with this base name exists and should be used: "+workset_name )
                 existing_workset.append(name)

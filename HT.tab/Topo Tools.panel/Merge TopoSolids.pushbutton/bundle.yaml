@@ -1,0 +1,9 @@
+title:
+  en_us:
+    Merge
+
+    TopoSolids
+tooltip:
+  en_us: |-
+
+    Joins many TopoSolids into one. Before merging, copy any Sub-divisions and paste them in the same place after the conversion.

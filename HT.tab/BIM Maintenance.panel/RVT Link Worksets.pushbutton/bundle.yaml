@@ -6,6 +6,17 @@ title:
 tooltip:
   en_us: >-
 
-    This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code or not. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. 
+    This tool creates a Workset for each Revit Linked file in accordance with the HTL naming standard. It asks a user to include HTL originator code and zone. It also moves existing links to corresponding Worksets if a link type or instance element is not placed correctly. 
             
     User will be asked at the end of the process if worksets with no RVT link replaced by a Workset with an updated name should be deleted. This unfortunately due to Revit API limitations can only be done to Editable Worksets.
+
+    Script builds a workset name from a linked file name. Links should follow the naming convention. If there is any description at the end is will be ignored.
+    A new workset name is compared with existing worksets. Existing workset name will be used if its name stars with this new workset name. This means that any additional workset descriptions at the end will be retained.
+
+    If a file discipline is A - Architecture and a file number starts with 1 or 2 a suffix "Internal" or "Facade" will be added to the workset name.
+    If only the last digit is different in many linked models or it is > 1 it will be also added as a suffix.
+
+    IMPORTANT!!!
+    Due to Revit API limitations it is not possible to rename existing Worksets. Links from existing worksets are removed and these Worksets are deleted. This means filters or other settings may not work and should be checked. 
+    
+    Script also adds the name of the workset except the prefix to the Name and Mark parameter of a linked model.
