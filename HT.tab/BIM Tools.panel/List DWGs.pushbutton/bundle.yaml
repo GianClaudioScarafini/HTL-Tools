@@ -1,0 +1,8 @@
+title:
+  en_us:
+    List 
+
+    DWGs
+tooltip:
+  en_us: Lists all linked and imported DWG instances with worksets and creator
+author: 'Frederic Beaupere' (pyRevit) Amended by Pawel Block (HTL)

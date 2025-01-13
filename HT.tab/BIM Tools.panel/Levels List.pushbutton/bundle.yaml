@@ -1,0 +1,9 @@
+title:
+  en_us:
+    Levels 
+
+    List
+tooltip:
+  en_us: >-
+
+    Creates a list of levels with number of dependent views and elements and a sub-list of dependent view names.

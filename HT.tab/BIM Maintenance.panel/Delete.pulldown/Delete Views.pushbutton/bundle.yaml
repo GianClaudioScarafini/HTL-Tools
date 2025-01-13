@@ -1,0 +1,8 @@
+title:
+  en_us: Delete Views
+tooltip:
+  en_us: >-
+
+    Delete Views safely from the Project Browser by checking if they do not have any dependent view or they are not placed on any sheet.
+
+    WARNING! This action can not be undone.

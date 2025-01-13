@@ -2,7 +2,7 @@
 # Company: Haworth Tompkins Ltd
 # Date: 2024-05-14
 # Version: 1.0.3
-# Description: This script will create a 3D view for each workset and will update existing Workset views. It allows to specify a View Template which can direct  new views to specific Project Browser folders.
+# Description: This script will create a 3D view for each workset and will update existing Workset views. It allows to specify a View Template which can direct new views to specific Project Browser folders.
 # Tested with: Revit +2022
 # Requirements: pyRevit add-in
 
@@ -96,7 +96,7 @@ else:
     # Sorts a list of list elements alphabetically by name.
     viewTemplates3D.sort(key=lambda obj: obj.Name)
 
-    # Creates an object to add to teh list of View Templates representing the None
+    # Creates an object to add to the list of View Templates representing the None
     class NoneOption():
             def __init__(self, name):
                 self.Name = name
@@ -141,7 +141,6 @@ else:
                 opts,
                 response = 'Yes',
                 message='Selected View Template setting for Workset V/G Overrides\nmust be unchecked to create Workset Views.\n\nWould you like to uncheck it?\n',
-                title = 'Workset V/G Overrides setting',#not doing anything
             )
             if selected_option == 'Yes':
                 view_template_not_controlled_settings.Add(DB.ElementId(-1006968))
